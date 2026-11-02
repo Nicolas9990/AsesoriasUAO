@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+
+import { profesorGuard } from './core/guards/profesor.guard';
+import { estudianteGuard } from './core/guards/estudiante.guard';
 
 export const routes: Routes = [
   {
@@ -10,7 +12,9 @@ export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () =>
-      import('./features/login/login').then((m) => m.Login),
+      import('./features/login/login').then(
+        (m) => m.Login,
+      ),
   },
   {
     path: 'registro',
@@ -19,12 +23,68 @@ export const routes: Routes = [
         (m) => m.Registro,
       ),
   },
+
+  // Rutas del profesor
+  {
+    path: 'profesor/horarios',
+    canActivate: [profesorGuard],
+    loadComponent: () =>
+      import('./features/horarios/horarios').then(
+        (m) => m.Horarios,
+      ),
+  },
+  {
+    path: 'profesor/reservas',
+    canActivate: [profesorGuard],
+    loadComponent: () =>
+      import('./features/reservas/reservas').then(
+        (m) => m.Reservas,
+      ),
+  },
+  {
+    path: 'profesor/perfil',
+    canActivate: [profesorGuard],
+    loadComponent: () =>
+      import('./pages/mi-perfil.component').then(
+        (m) => m.MiPerfilComponent,
+      ),
+  },
+  {
+    path: 'profesor',
+    canActivate: [profesorGuard],
+    loadComponent: () =>
+      import('./features/profesor/profesor').then(
+        (m) => m.Profesor,
+      ),
+  },
+
+  // Rutas del estudiante
+  {
+    path: 'panel/reservas',
+    canActivate: [estudianteGuard],
+    loadComponent: () =>
+      import('./features/reservas/reservas').then(
+        (m) => m.Reservas,
+      ),
+  },
+  {
+    path: 'panel/perfil',
+    canActivate: [estudianteGuard],
+    loadComponent: () =>
+      import('./pages/mi-perfil.component').then(
+        (m) => m.MiPerfilComponent,
+      ),
+  },
   {
     path: 'panel',
-    canActivate: [authGuard],
+    canActivate: [estudianteGuard],
     loadComponent: () =>
-      import('./features/panel/panel').then((m) => m.Panel),
+      import('./features/estudiante/estudiante').then(
+        (m) => m.Estudiante,
+      ),
   },
+
+  // Cualquier ruta no definida vuelve al login
   {
     path: '**',
     redirectTo: 'login',

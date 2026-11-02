@@ -1,0 +1,233 @@
+<div class="profesor-layout">
+  <aside class="sidebar" aria-label="Menú del profesor">
+    <div class="sidebar-brand">
+      <img
+        src="/images/logo-sae.png"
+        alt="SAE Asesorías UAO"
+      />
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Navegación principal">
+      <a
+        class="nav-item active"
+        routerLink="/profesor"
+        aria-current="page"
+      >
+        <span aria-hidden="true">⌂</span>
+        Inicio
+      </a>
+
+      <a
+        class="nav-item"
+        routerLink="/profesor/horarios"
+      >
+        <span aria-hidden="true">▦</span>
+        Organizar horarios
+      </a>
+
+      <a
+        class="nav-item"
+        routerLink="/profesor/reservas"
+      >
+        <span aria-hidden="true">▤</span>
+        Revisar reservas
+      </a>
+
+      <a
+        class="nav-item"
+        routerLink="/profesor/perfil"
+      >
+        <span aria-hidden="true">○</span>
+        Mi perfil
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button
+        class="logout-button"
+        type="button"
+        [disabled]="cerrandoSesion()"
+        (click)="cerrarSesion()"
+      >
+        <span aria-hidden="true">↪</span>
+
+        {{
+          cerrandoSesion()
+            ? 'Cerrando sesión…'
+            : 'Cerrar sesión'
+        }}
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-column">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Panel del profesor</p>
+        <h1>Bienvenido, profesor</h1>
+      </div>
+
+      @if (perfil(); as usuario) {
+        <a
+          class="user-profile profile-link"
+          routerLink="/profesor/perfil"
+          [attr.aria-label]="'Abrir mi perfil: ' + usuario.nombre"
+        >
+          <span class="avatar" aria-hidden="true">
+            {{ iniciales }}
+          </span>
+
+          <span class="profile-info">
+            <span class="profile-name">
+              {{ usuario.nombre }}
+            </span>
+
+            <span class="profile-role">
+              Profesor
+            </span>
+          </span>
+
+          <svg
+            class="profile-arrow"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m9 5 7 7-7 7" />
+          </svg>
+        </a>
+      }
+    </header>
+
+    <main class="main-content">
+      @if (cargando()) {
+        <p class="status-message" role="status">
+          Cargando tu información…
+        </p>
+      }
+
+      @if (error()) {
+        <p class="error-message" role="alert">
+          {{ error() }}
+        </p>
+      }
+
+      @if (perfil(); as usuario) {
+        <section aria-labelledby="panel-title">
+          <div class="section-heading">
+            <h2 id="panel-title">Panel principal</h2>
+
+            <p>
+              Hola, {{ usuario.nombre }}. Este es tu espacio
+              para gestionar las asesorías.
+            </p>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <span class="feature-icon" aria-hidden="true">
+                ▦
+              </span>
+
+              <div>
+                <h3>Organizar horarios</h3>
+
+                <p>
+                  Consulta tus materias asignadas y publica
+                  las franjas horarias para tus asesorías.
+                </p>
+
+                <a
+                  class="development-label"
+                  routerLink="/profesor/horarios"
+                >
+                  Abrir gestión de horarios →
+                </a>
+              </div>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-icon" aria-hidden="true">
+                ▤
+              </span>
+
+              <div>
+                <h3>Revisar reservas</h3>
+
+                <p>
+                  Consulta las solicitudes de tus estudiantes
+                  y gestiona el estado de cada asesoría.
+                </p>
+
+                <a
+                  class="development-label"
+                  routerLink="/profesor/reservas"
+                >
+                  Abrir gestión de reservas →
+                </a>
+              </div>
+            </article>
+          </div>
+
+          <section
+            class="summary-section"
+            aria-labelledby="resumen-title"
+            [attr.aria-busy]="cargandoResumen()"
+          >
+            <div class="summary-heading">
+              <h2 id="resumen-title">Resumen</h2>
+
+              <button
+                class="summary-refresh"
+                type="button"
+                [disabled]="cargandoResumen()"
+                (click)="cargarResumen()"
+              >
+                {{
+                  cargandoResumen()
+                    ? 'Actualizando…'
+                    : 'Actualizar'
+                }}
+              </button>
+            </div>
+
+            @if (errorResumen()) {
+              <p class="error-message" role="alert">
+                {{ errorResumen() }}
+              </p>
+            }
+
+            @if (resumen(); as datos) {
+              <div class="summary-grid">
+                <article class="summary-card">
+                  <strong>{{ datos.disponibles }}</strong>
+                  <span>Horarios disponibles</span>
+                </article>
+
+                <article class="summary-card">
+                  <strong>{{ datos.pendientes }}</strong>
+                  <span>Reservas pendientes</span>
+                </article>
+
+                <article class="summary-card">
+                  <strong>{{ datos.realizadas }}</strong>
+                  <span>Asesorías realizadas</span>
+                </article>
+              </div>
+            } @else if (cargandoResumen()) {
+              <p class="status-message" role="status">
+                Consultando el resumen…
+              </p>
+            }
+          </section>
+        </section>
+      }
+    </main>
+  </div>
+</div>

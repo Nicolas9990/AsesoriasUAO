@@ -4,11 +4,11 @@
     aria-labelledby="registro-title"
   >
     <header class="registro-brand">
-     <img
-  class="registro-logo"
-  src="/images/logo-sae.png"
-  alt="SAE Asesorías UAO"
-/>
+      <img
+        class="registro-logo"
+        src="/images/logo-sae.png"
+        alt="SAE Asesorías UAO"
+      />
 
       <p class="registro-description">
         Sistema de Asesorías Estudiantiles
@@ -23,6 +23,7 @@
     <form
       class="registro-form"
       [formGroup]="formulario"
+      [attr.aria-busy]="cargando()"
       (ngSubmit)="crearCuenta()"
     >
       <div class="form-field">
@@ -34,6 +35,10 @@
           formControlName="nombre"
           placeholder="Ingresa tu nombre completo"
           autocomplete="name"
+          [attr.aria-invalid]="
+            formulario.controls.nombre.touched &&
+            formulario.controls.nombre.invalid
+          "
         />
 
         @if (
@@ -55,14 +60,32 @@
           formControlName="correo"
           placeholder="usuario@uao.edu.co"
           autocomplete="email"
+          [attr.aria-invalid]="
+            formulario.controls.correo.touched &&
+            formulario.controls.correo.invalid
+          "
         />
 
         @if (
           formulario.controls.correo.touched &&
-          formulario.controls.correo.invalid
+          formulario.controls.correo.hasError('required')
+        ) {
+          <small class="field-error">
+            Ingresa tu correo electrónico.
+          </small>
+        } @else if (
+          formulario.controls.correo.touched &&
+          formulario.controls.correo.hasError('email')
         ) {
           <small class="field-error">
             Ingresa un correo electrónico válido.
+          </small>
+        } @else if (
+          formulario.controls.correo.touched &&
+          formulario.controls.correo.hasError('correoNoPermitido')
+        ) {
+          <small class="field-error">
+            Usa un correo @uao.edu.co o la cuenta de prueba autorizada.
           </small>
         }
       </div>
@@ -77,6 +100,10 @@
           placeholder="Crea una contraseña"
           autocomplete="new-password"
           aria-describedby="password-help"
+          [attr.aria-invalid]="
+            formulario.controls.password.touched &&
+            formulario.controls.password.invalid
+          "
         />
 
         <small id="password-help" class="field-help">
@@ -85,7 +112,14 @@
 
         @if (
           formulario.controls.password.touched &&
-          formulario.controls.password.invalid
+          formulario.controls.password.hasError('required')
+        ) {
+          <small class="field-error">
+            Ingresa una contraseña.
+          </small>
+        } @else if (
+          formulario.controls.password.touched &&
+          formulario.controls.password.hasError('minlength')
         ) {
           <small class="field-error">
             La contraseña debe tener al menos ocho caracteres.
@@ -93,7 +127,6 @@
         }
       </div>
 
-            <!-- Confirmación de contraseña -->
       <div class="form-field">
         <label for="confirmacion">Confirmar contraseña</label>
 
@@ -103,6 +136,13 @@
           formControlName="confirmacion"
           placeholder="Repite tu contraseña"
           autocomplete="new-password"
+          [attr.aria-invalid]="
+            formulario.controls.confirmacion.touched &&
+            (
+              formulario.controls.confirmacion.invalid ||
+              formulario.hasError('passwordsDiferentes')
+            )
+          "
         />
 
         @if (
@@ -122,7 +162,6 @@
         }
       </div>
 
-      <!-- Mensaje de error -->
       @if (error()) {
         <div
           class="form-message form-message-error"
@@ -132,7 +171,6 @@
         </div>
       }
 
-      <!-- Confirmación del registro -->
       @if (mensaje()) {
         <div
           class="form-message form-message-success"
@@ -142,7 +180,6 @@
         </div>
       }
 
-      <!-- Botón de registro -->
       <button
         class="submit-button"
         type="submit"
@@ -152,7 +189,6 @@
       </button>
     </form>
 
-    <!-- Enlace al inicio de sesión -->
     <footer class="registro-footer">
       <span>¿Ya tienes una cuenta?</span>
       <a routerLink="/login">Iniciar sesión</a>

@@ -1,0 +1,287 @@
+<div class="horarios-page">
+  <header class="page-header">
+    <div>
+      <a class="back-link" routerLink="/profesor">
+        ← Panel del profesor
+      </a>
+
+      <p class="eyebrow">Gestión de horarios</p>
+      <h1>Organizar horarios</h1>
+    </div>
+
+    <img
+      class="header-logo"
+      src="/images/logo-sae.png"
+      alt="SAE Asesorías UAO"
+    />
+  </header>
+
+  <main class="page-content">
+    <div class="section-heading">
+      <div>
+        <h2>Mi disponibilidad</h2>
+        <p>
+          Organiza las franjas en las que puedes atender asesorías.
+        </p>
+      </div>
+
+      <button
+        class="primary-button"
+        type="button"
+        [disabled]="ocupado() || asignaturas().length === 0"
+        (click)="abrirFormulario()"
+      >
+        + Agregar horario
+      </button>
+    </div>
+
+    @if (error()) {
+      <p class="alert alert-error" role="alert">
+        {{ error() }}
+      </p>
+    }
+
+    @if (mensaje()) {
+      <p class="alert alert-success" role="status">
+        {{ mensaje() }}
+      </p>
+    }
+
+    @if (mostrarFormulario()) {
+      <section class="form-card" aria-labelledby="nuevo-horario">
+        <div class="form-heading">
+          <div>
+            <h2 id="nuevo-horario">Nuevo horario</h2>
+            <p>Selecciona una materia, fecha y franja de atención.</p>
+          </div>
+
+          <button
+            class="close-button"
+            type="button"
+            aria-label="Cerrar formulario"
+            [disabled]="guardando()"
+            (click)="cancelar()"
+          >
+            ×
+          </button>
+        </div>
+
+        <form
+          [formGroup]="formulario"
+          (ngSubmit)="guardar()"
+        >
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="asignatura">Materia</label>
+
+              <select
+                id="asignatura"
+                formControlName="asignaturaId"
+              >
+                <option value="">Seleccionar materia</option>
+
+                @for (asignatura of asignaturas(); track asignatura.id) {
+                  <option [value]="asignatura.id">
+                    {{ asignatura.nombre }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="fecha">Fecha</label>
+
+              <input
+                id="fecha"
+                type="date"
+                formControlName="fecha"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="inicio">Hora de inicio</label>
+
+              <input
+                id="inicio"
+                type="time"
+                formControlName="horaInicio"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="fin">Hora de finalización</label>
+
+              <input
+                id="fin"
+                type="time"
+                formControlName="horaFin"
+              />
+            </div>
+          </div>
+
+          <p class="timezone-note">
+            Horas de Colombia · UTC−5
+          </p>
+
+          <div class="form-actions">
+            <button
+              class="secondary-button"
+              type="button"
+              [disabled]="guardando()"
+              (click)="cancelar()"
+            >
+              Cancelar
+            </button>
+
+            <button
+              class="primary-button"
+              type="submit"
+              [disabled]="ocupado()"
+            >
+              {{ guardando() ? 'Guardando…' : 'Agregar horario' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
+    <section aria-label="Calendario semanal">
+      <div class="week-toolbar">
+        <button
+          class="secondary-button"
+          type="button"
+          [disabled]="ocupado()"
+          (click)="moverSemana(-1)"
+        >
+          ← Semana anterior
+        </button>
+
+        <div class="week-title">
+          <strong>
+            {{
+              inicioSemana() + 'T12:00:00Z'
+                | date:'dd/MM/yyyy':'UTC'
+            }}
+            –
+            {{
+              finSemana() + 'T12:00:00Z'
+                | date:'dd/MM/yyyy':'UTC'
+            }}
+          </strong>
+
+          <button
+            class="today-button"
+            type="button"
+            [disabled]="ocupado()"
+            (click)="irAHoy()"
+          >
+            Semana actual
+          </button>
+        </div>
+
+        <button
+          class="secondary-button"
+          type="button"
+          [disabled]="ocupado()"
+          (click)="moverSemana(1)"
+        >
+          Siguiente semana →
+        </button>
+      </div>
+
+      <div class="calendar-meta">
+        <div class="legend">
+          <span><i class="dot available"></i> Disponible</span>
+          <span><i class="dot reserved"></i> Reservado</span>
+          <span><i class="dot past"></i> Pasado</span>
+        </div>
+
+        <button
+          class="secondary-button"
+          type="button"
+          [disabled]="ocupado()"
+          (click)="cargarDatos()"
+        >
+          Actualizar
+        </button>
+      </div>
+
+      @if (cargando()) {
+        <p class="empty-state" role="status">
+          Cargando calendario…
+        </p>
+      } @else {
+        @if (asignaturas().length === 0) {
+          <p class="empty-state">
+            No tienes materias asignadas. Un administrador debe
+            asignarte una para que puedas publicar horarios.
+          </p>
+        }
+
+        <div
+          class="calendar-scroll"
+          tabindex="0"
+          aria-label="Calendario de lunes a domingo. Desplázate horizontalmente para ver todos los días."
+        >
+          <div class="calendar-grid">
+            @for (dia of dias(); track dia.fecha) {
+              <section class="day-column">
+                <header class="day-heading">
+                  <h3>{{ dia.nombre }}</h3>
+
+                  <span>
+                    {{
+                      dia.fecha + 'T12:00:00Z'
+                        | date:'dd/MM':'UTC'
+                    }}
+                  </span>
+                </header>
+
+                <div class="day-body">
+                  @for (horario of dia.horarios; track horario.id) {
+                    <article
+                      class="slot"
+                      [class.reserved]="horario.reservado"
+                      [class.past]="esPasado(horario)"
+                    >
+                      <strong class="slot-time">
+                        {{ horario.inicio | date:'HH:mm':'-0500' }}
+                        –
+                        {{ horario.fin | date:'HH:mm':'-0500' }}
+                      </strong>
+
+                      <span class="slot-subject">
+                        {{ nombreAsignatura(horario.asignatura_id) }}
+                      </span>
+
+                      <span class="slot-status">
+                        {{ estadoHorario(horario) }}
+                      </span>
+
+                      @if (puedeEliminar(horario)) {
+                        <button
+                          class="delete-button"
+                          type="button"
+                          [disabled]="ocupado()"
+                          (click)="eliminar(horario)"
+                        >
+                          {{
+                            eliminando() === horario.id
+                              ? 'Eliminando…'
+                              : 'Eliminar'
+                          }}
+                        </button>
+                      }
+                    </article>
+                  } @empty {
+                    <p class="no-slots">Sin horarios</p>
+                  }
+                </div>
+              </section>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  </main>
+</div>

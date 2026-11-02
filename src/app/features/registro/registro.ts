@@ -11,6 +11,8 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
+const CORREO_DEMO = 'danitoacosta04@gmail.com';
+
 function passwordsIguales(
   control: AbstractControl,
 ): ValidationErrors | null {
@@ -20,6 +22,28 @@ function passwordsIguales(
   return password === confirmacion
     ? null
     : { passwordsDiferentes: true };
+}
+
+function correoPermitido(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const correo = String(control.value ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (!correo) {
+    return null;
+  }
+
+  const esInstitucional =
+    /^[^@\s]+@uao\.edu\.co$/.test(correo);
+
+  const esCuentaDemo =
+    correo === CORREO_DEMO.toLowerCase();
+
+  return esInstitucional || esCuentaDemo
+    ? null
+    : { correoNoPermitido: true };
 }
 
 @Component({
@@ -49,18 +73,24 @@ export class Registro {
         ],
       ],
       correo: [
-  '',
-  [
-    Validators.required,
-    Validators.email,
-    Validators.pattern(/^[^@\s]+@uao\.edu\.co$/i),
-  ],
-],
+        '',
+        [
+          Validators.required,
+          Validators.email,
+          correoPermitido,
+        ],
+      ],
       password: [
         '',
-        [Validators.required, Validators.minLength(8)],
+        [
+          Validators.required,
+          Validators.minLength(8),
+        ],
       ],
-      confirmacion: ['', Validators.required],
+      confirmacion: [
+        '',
+        Validators.required,
+      ],
     },
     {
       validators: passwordsIguales,
@@ -74,6 +104,14 @@ export class Registro {
 
     this.error.set('');
     this.mensaje.set('');
+
+
+    this.formulario.patchValue({
+      nombre: this.formulario.controls.nombre.value.trim(),
+      correo: this.formulario.controls.correo.value
+        .trim()
+        .toLowerCase(),
+    });
 
     if (this.formulario.invalid) {
       this.formulario.markAllAsTouched();
@@ -93,7 +131,16 @@ export class Registro {
       );
 
       if (resultado.session) {
-        await this.router.navigateByUrl('/panel');
+        try {
+          const ruta = await this.auth.obtenerRutaInicial();
+
+          await this.router.navigateByUrl(ruta);
+        } catch {
+          this.error.set(
+            'El registro devolvió una sesión activa, pero no fue posible cargar el perfil. Intenta acceder desde Iniciar sesión.',
+          );
+        }
+
         return;
       }
 
@@ -101,10 +148,15 @@ export class Registro {
         'Solicitud procesada. Revisa tu correo para confirmar la cuenta. Si ya tienes una cuenta, puedes iniciar sesión.',
       );
 
-      this.formulario.reset();
+      this.formulario.reset({
+        nombre: '',
+        correo: '',
+        password: '',
+        confirmacion: '',
+      });
     } catch {
       this.error.set(
-        'No fue posible procesar el registro. Revisa los datos y los requisitos de contraseña e intenta nuevamente.',
+        'No fue posible procesar el registro. Comprueba que tu correo esté autorizado también en Supabase y revisa los requisitos de contraseña.',
       );
     } finally {
       this.cargando.set(false);

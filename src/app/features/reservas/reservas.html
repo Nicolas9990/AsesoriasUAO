@@ -1,0 +1,216 @@
+<div class="reservas-page">
+  <header class="page-header">
+    <div>
+      <a class="back-link" [routerLink]="rutaInicio">
+        ← Volver al panel
+      </a>
+
+      <p class="eyebrow">Gestión de asesorías</p>
+
+      <h1>
+        {{ esProfesor ? 'Reservas' : 'Mis reservas' }}
+      </h1>
+    </div>
+
+    <img
+      src="/images/logo-sae.png"
+      alt="SAE Asesorías UAO"
+    />
+  </header>
+
+  <main class="page-content">
+    <div class="section-heading">
+      <div>
+        <h2>Reservas de asesorías</h2>
+
+        <p>
+          {{
+            esProfesor
+              ? 'Consulta y gestiona las solicitudes de tus estudiantes.'
+              : 'Consulta el estado de tus asesorías reservadas.'
+          }}
+        </p>
+      </div>
+
+      <button
+        class="secondary-button"
+        type="button"
+        [disabled]="cargando() || procesando() !== null"
+        (click)="cargar()"
+      >
+        Actualizar
+      </button>
+    </div>
+
+    <div class="filters" aria-label="Filtrar reservas">
+      @for (opcion of filtros; track opcion.valor) {
+        <button
+          type="button"
+          class="filter-button"
+          [class.active]="filtro() === opcion.valor"
+          [attr.aria-pressed]="filtro() === opcion.valor"
+          (click)="cambiarFiltro(opcion.valor)"
+        >
+          {{ opcion.etiqueta }}
+        </button>
+      }
+    </div>
+
+    @if (error()) {
+      <p class="alert error" role="alert">
+        {{ error() }}
+      </p>
+    }
+
+    @if (mensaje()) {
+      <p class="alert success" role="status">
+        {{ mensaje() }}
+      </p>
+    }
+
+    @if (cargando()) {
+      <div class="empty-state" role="status">
+        Cargando reservas…
+      </div>
+    } @else {
+      <div class="reservas-list">
+        @for (reserva of reservasFiltradas(); track reserva.id) {
+          <article class="reserva-card">
+            <div class="reserva-main">
+              <div class="date-badge">
+                <strong>
+                  {{ reserva.inicio | date:'dd':'-0500' }}
+                </strong>
+
+                <span>
+                  {{ reserva.inicio | date:'MM/yyyy':'-0500' }}
+                </span>
+              </div>
+
+              <div class="reserva-info">
+                <h3>{{ reserva.asignatura_nombre }}</h3>
+
+                <p>
+                  {{
+                    esProfesor
+                      ? reserva.estudiante_nombre
+                      : reserva.profesor_nombre
+                  }}
+                </p>
+
+                <p>
+                  {{ reserva.inicio | date:'HH:mm':'-0500' }}
+                  –
+                  {{ reserva.fin | date:'HH:mm':'-0500' }}
+                  · Colombia
+                </p>
+              </div>
+
+              <span
+                class="status-badge"
+                [class.pendiente]="reserva.estado === 'pendiente'"
+                [class.confirmada]="reserva.estado === 'confirmada'"
+                [class.realizada]="reserva.estado === 'realizada'"
+                [class.cancelada]="reserva.estado === 'cancelada'"
+              >
+                {{ reserva.estado }}
+              </span>
+
+              <button
+                class="secondary-button"
+                type="button"
+                [attr.aria-expanded]="detalleId() === reserva.id"
+                (click)="alternarDetalle(reserva.id)"
+              >
+                {{
+                  detalleId() === reserva.id
+                    ? 'Ocultar detalles'
+                    : 'Ver detalles'
+                }}
+              </button>
+            </div>
+
+            @if (detalleId() === reserva.id) {
+              <div class="reserva-detail">
+                <dl>
+                  <div>
+                    <dt>Profesor</dt>
+                    <dd>{{ reserva.profesor_nombre }}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Estudiante</dt>
+                    <dd>{{ reserva.estudiante_nombre }}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Fecha de la asesoría</dt>
+                    <dd>
+                      {{ reserva.inicio | date:'dd/MM/yyyy':'-0500' }}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Solicitud creada</dt>
+                    <dd>
+                      {{
+                        reserva.creada_en
+                          | date:'dd/MM/yyyy HH:mm':'-0500'
+                      }}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div class="actions">
+                  @if (puedeConfirmar(reserva)) {
+                    <button
+                      class="primary-button"
+                      type="button"
+                      [disabled]="procesando() !== null"
+                      (click)="cambiarEstado(reserva, 'confirmada')"
+                    >
+                      Confirmar asesoría
+                    </button>
+                  }
+
+                  @if (puedeRealizar(reserva)) {
+                    <button
+                      class="primary-button"
+                      type="button"
+                      [disabled]="procesando() !== null"
+                      (click)="cambiarEstado(reserva, 'realizada')"
+                    >
+                      Marcar como realizada
+                    </button>
+                  }
+
+                  @if (puedeCancelar(reserva)) {
+                    <button
+                      class="danger-button"
+                      type="button"
+                      [disabled]="procesando() !== null"
+                      (click)="cambiarEstado(reserva, 'cancelada')"
+                    >
+                      Cancelar reserva
+                    </button>
+                  }
+
+                  @if (procesando() === reserva.id) {
+                    <span class="processing" role="status">
+                      Guardando cambio…
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </article>
+        } @empty {
+          <div class="empty-state">
+            <h3>No hay reservas en esta categoría</h3>
+            <p>Selecciona otro filtro o actualiza el listado.</p>
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>

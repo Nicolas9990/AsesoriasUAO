@@ -36,46 +36,59 @@ export class Login implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    try {
-      const session = await this.auth.obtenerSesion();
+  try {
+    const session = await this.auth.obtenerSesion();
 
-      if (session) {
-        await this.router.navigateByUrl('/panel');
-      }
-    } catch {
-      this.error.set('No fue posible comprobar la sesión.');
+    if (session) {
+      const ruta = await this.auth.obtenerRutaInicial();
+      await this.router.navigateByUrl(ruta);
     }
+  } catch {
+    this.error.set(
+      'No fue posible cargar tu perfil. Comprueba tu conexión y que tu perfil exista en Supabase.',
+    );
   }
+}
 
   alternarPassword(): void {
     this.mostrarPassword.update((valor) => !valor);
   }
 
   async iniciarSesion(): Promise<void> {
-    if (this.cargando()) {
-      return;
-    }
+  if (this.cargando()) {
+    return;
+  }
 
-    this.error.set('');
+  this.error.set('');
 
-    if (this.formulario.invalid) {
-      this.formulario.markAllAsTouched();
-      return;
-    }
+  if (this.formulario.invalid) {
+    this.formulario.markAllAsTouched();
+    return;
+  }
 
-    this.cargando.set(true);
+  this.cargando.set(true);
+
+  try {
+    const { correo, password } = this.formulario.getRawValue();
 
     try {
-      const { correo, password } = this.formulario.getRawValue();
-
       await this.auth.iniciarSesion(correo, password);
-      await this.router.navigateByUrl('/panel');
     } catch {
       this.error.set(
-        'No pudimos iniciar sesión. Revisa tus datos, confirma tu correo si está pendiente e intenta nuevamente.',
+        'No pudimos iniciar sesión. Revisa tus datos y confirma tu correo si está pendiente.',
       );
-    } finally {
-      this.cargando.set(false);
+      return;
     }
+
+    try {
+      const ruta = await this.auth.obtenerRutaInicial();
+      await this.router.navigateByUrl(ruta);
+    } catch {
+      this.error.set(
+        'La sesión se inició, pero no pudimos cargar tu perfil. Revisa tu conexión y la tabla perfiles en Supabase.',
+      );
+    }
+  } finally {
+    this.cargando.set(false);
   }
-}
+  }}
