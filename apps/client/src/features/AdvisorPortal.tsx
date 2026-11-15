@@ -399,11 +399,13 @@ export function ProfessorSchedule() {
         if (!subject.exists() || subject.get('activa') !== true || !assignment.exists()) {
           throw new Error('La asignatura no está activa o no está asignada a tu perfil.');
         }
-        const intervals = (lock.exists() ? lock.get('intervalos') : []) as Array<{
+        const storedIntervals = (lock.exists() ? lock.get('intervalos') : []) as Array<{
           horarioId: string; inicio: Timestamp; fin: Timestamp;
         }>;
-        if (!Array.isArray(intervals)) throw new Error('El calendario del profesor no tiene un formato válido.');
-        const overlaps = intervals.some((item) => item.inicio instanceof Timestamp && item.fin instanceof Timestamp
+        if (!Array.isArray(storedIntervals)) throw new Error('El calendario del profesor no tiene un formato válido.');
+        const intervals = storedIntervals.filter((item) => item.fin instanceof Timestamp
+          && item.fin.toMillis() > Timestamp.now().toMillis());
+        const overlaps = intervals.some((item) => item.inicio instanceof Timestamp
           && startTimestamp.toMillis() < item.fin.toMillis() && endTimestamp.toMillis() > item.inicio.toMillis());
         if (overlaps) throw new Error('El horario se cruza con otra franja publicada.');
         transaction.set(lockRef, {
