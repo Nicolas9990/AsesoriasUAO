@@ -15,7 +15,7 @@ import {
 import { IonReactRouter } from '@ionic/react-router';
 import { Link, Navigate, Route } from 'react-router-dom';
 import { AuthProvider, firebaseConfigured, useAuth } from './auth/AuthProvider';
-import { DefaultPortalRoute, ProfessorRequests, ProfessorSchedule, StudentBookings, StudentSearch } from './features/AdvisorPortal';
+import { ProfessorRequests, ProfessorSchedule, StudentBookings, StudentSearch } from './features/AdvisorPortal';
 
 function AuthScreen({ register = false }: { register?: boolean }) {
   const { signIn, register: createAccount, error: authError, clearError } = useAuth();
@@ -92,7 +92,7 @@ function Home() {
   if (loading) return <IonPage><IonContent><IonLoading isOpen message="Cargando tu perfil…" /></IonContent></IonPage>;
   if (!user) return <Navigate to="/login" replace />;
   if (!profile) return <ProfilePending />;
-  return <DefaultPortalRoute />;
+  return <Navigate to={profile.rol === 'profesor' ? '/horarios' : '/buscar'} replace />;
 }
 
 function PortalGate({ role, children }: { role: 'estudiante' | 'profesor'; children: ReactNode }) {
