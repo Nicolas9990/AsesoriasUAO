@@ -34,4 +34,26 @@ body { background: #f5f8fc; }
 .setup-content { display: grid; place-items: center; padding: 24px; }
 .setup-card { margin: 0; }
 .setup-card ion-title { padding: 0; color: #102b46; font-size: 26px; font-weight: 750; white-space: normal; }
+.portal-nav { --background: #fff; --border-color: #e7edf4; overflow-x: auto; }
+.portal-nav-buttons { width: min(1050px, 100%); margin: 0 auto; padding: 0 16px; }
+.portal-shell { max-width: 1050px; margin: 0 auto; padding: 38px 24px 76px; }
+.portal-title { margin: 0; color: #102b46; font-size: clamp(30px, 4vw, 42px); letter-spacing: -.035em; }
+.portal-lede { max-width: 680px; margin: 12px 0 26px; color: #64768a; font-size: 16px; line-height: 1.6; }
+.portal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: start; }
+.portal-card { margin: 8px 0; border: 1px solid #e3eaf1; border-radius: 18px; box-shadow: 0 10px 30px #18324d0a; }
+.portal-card ion-card-title { color: #102b46; font-size: 19px; }
+.portal-card ion-card-content p { margin: 7px 0; color: #607286; }
+.portal-card ion-card-content ion-button { margin: 14px 0 0; }
+.filter-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 16px; border: 1px solid #e3eaf1; border-radius: 16px; background: #fff; }
+.filter-card ion-item { --background: #f8fafc; --border-radius: 12px; border: 1px solid #e3eaf1; border-radius: 12px; }
+.schedule-form { margin: 28px 0 38px; padding: 22px; border: 1px solid #e3eaf1; border-radius: 18px; background: #fff; }
+.schedule-form h2, .section-heading { margin: 0 0 16px; color: #102b46; font-size: 20px; }
+.schedule-form .filter-card { padding: 0; border: 0; }
+.form-submit { margin-top: 16px; }
+.portal-state { margin: 18px 0; color: #61758a; line-height: 1.55; }
+.portal-state-error { color: #b42318; }
+.booking-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.booking-actions ion-button { margin: 10px 0 0; }
+ion-badge { vertical-align: middle; }
 @media (max-width: 760px) { .auth-layout { grid-template-columns: 1fr; gap: 30px; padding: 30px 18px 42px; align-content: center; } .auth-brand .eyebrow { margin-top: 22px; } .auth-brand h1 { max-width: 460px; font-size: clamp(32px, 9vw, 44px); } .brand-copy { display: none; } .auth-card { padding: 26px 20px; } .feature-grid { grid-template-columns: 1fr; } .home-shell { padding-top: 36px; } }
+@media (max-width: 680px) { .portal-shell { padding: 28px 16px 56px; } .portal-grid, .filter-card, .schedule-form .filter-card { grid-template-columns: 1fr; } .schedule-form { padding: 18px 14px; } .portal-nav-buttons { padding: 0 8px; } .portal-nav-buttons ion-button { font-size: 12px; } }

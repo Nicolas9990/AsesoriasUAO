@@ -48,6 +48,6 @@ El proyecto iOS solo se puede compilar desde macOS con Xcode.
 
 ## Migración funcional
 
-La versión Angular contiene registro e inicio de sesión, perfiles por rol, búsqueda y reserva de asesorías, horarios de profesores, gestión de reservas y resumen del profesor. La autenticación y los permisos ya reflejan los roles; las callables de Firestore implementan las reglas de creación de horarios, solapamiento, reserva concurrente y transiciones de estado. Las pantallas React para estos flujos se migrarán usando este modelo. El rol de profesor se asigna desde un entorno administrativo confiable, nunca desde el formulario público.
+La versión Angular de referencia está en `legacy/angular`. La app React/Ionic ya contiene registro e inicio de sesión, búsqueda de horarios por asignatura y fecha, solicitud y cancelación de reservas, publicación y eliminación de horarios docentes, y gestión de solicitudes (confirmar, cancelar y marcar como realizada). Las consultas de disponibilidad y reservas se actualizan en tiempo real; las mutaciones pasan por las callables transaccionales de Firestore. Para usar estos flujos hay que configurar y desplegar Firebase según los pasos anteriores. El rol de profesor y sus asignaturas se asignan desde un entorno administrativo confiable, nunca desde el formulario público.
 
 El plan inicial de modelo Firestore y migración de datos está en [`docs/firebase-data-model.md`](docs/firebase-data-model.md). No se copian credenciales del cliente Supabase al nuevo cliente Firebase.

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import {
   IonApp,
   IonButton,
@@ -15,6 +15,7 @@ import {
 import { IonReactRouter } from '@ionic/react-router';
 import { Redirect, Route } from 'react-router-dom';
 import { AuthProvider, firebaseConfigured, useAuth } from './auth/AuthProvider';
+import { DefaultPortalRoute, ProfessorRequests, ProfessorSchedule, StudentBookings, StudentSearch } from './features/AdvisorPortal';
 
 function AuthScreen({ register = false }: { register?: boolean }) {
   const { signIn, register: createAccount, error: authError, clearError } = useAuth();
@@ -87,29 +88,20 @@ function AuthScreen({ register = false }: { register?: boolean }) {
 }
 
 function Home() {
-  const { profile, user, signOutUser, loading } = useAuth();
+  const { profile, user, loading } = useAuth();
   if (loading) return <IonPage><IonContent><IonLoading isOpen message="Cargando tu perfil…" /></IonContent></IonPage>;
   if (!user) return <Redirect to="/login" />;
   if (!profile) return <ProfilePending />;
+  return <DefaultPortalRoute />;
+}
 
-  return (
-    <IonPage>
-      <IonToolbar className="home-toolbar"><IonTitle>Asesorías UAO</IonTitle><IonButton slot="end" fill="clear" onClick={() => void signOutUser()}>Cerrar sesión</IonButton></IonToolbar>
-      <IonContent className="home-content">
-        <main className="home-shell">
-          <p className="eyebrow">ESPACIO DE {profile.rol.toUpperCase()}</p>
-          <h1>Hola, {profile.nombre.split(' ')[0]}.</h1>
-          <p className="home-lede">{profile.rol === 'estudiante' ? 'Encuentra una asesoría para avanzar con confianza en tus cursos.' : 'Administra tus horarios y acompaña a tus estudiantes.'}</p>
-          <div className="feature-grid">
-            {(profile.rol === 'estudiante'
-              ? [['Buscar asesorías', 'Filtra por asignatura y fecha, y solicita un espacio con un profesor.'], ['Mis reservas', 'Consulta el estado y los detalles de tus próximas asesorías.']]
-              : [['Mis horarios', 'Publica y organiza las franjas en las que puedes brindar asesorías.'], ['Solicitudes', 'Revisa y gestiona las reservas de tus estudiantes.']]
-            ).map(([title, description]) => <article className="feature-card" key={title}><div className="feature-icon">✦</div><h2>{title}</h2><p>{description}</p><IonButton fill="clear" disabled>Disponible en la siguiente etapa <span aria-hidden="true">→</span></IonButton></article>)}
-          </div>
-        </main>
-      </IonContent>
-    </IonPage>
-  );
+function PortalGate({ role, children }: { role: 'estudiante' | 'profesor'; children: ReactNode }) {
+  const { profile, user, loading } = useAuth();
+  if (loading) return <IonPage><IonContent><IonLoading isOpen message="Cargando…" /></IonContent></IonPage>;
+  if (!user) return <Redirect to="/login" />;
+  if (!profile) return <ProfilePending />;
+  if (profile.rol !== role) return <Redirect to="/" />;
+  return <>{children}</>;
 }
 
 function ProfilePending() {
@@ -136,6 +128,10 @@ function AppRoutes() {
     <Route exact path="/login">{user ? <Redirect to="/" /> : <AuthScreen />}</Route>
     <Route exact path="/registro">{user ? <Redirect to="/" /> : <AuthScreen register />}</Route>
     <Route exact path="/">{user ? <Home /> : <Redirect to="/login" />}</Route>
+    <Route exact path="/buscar"><PortalGate role="estudiante"><StudentSearch /></PortalGate></Route>
+    <Route exact path="/reservas"><PortalGate role="estudiante"><StudentBookings /></PortalGate></Route>
+    <Route exact path="/horarios"><PortalGate role="profesor"><ProfessorSchedule /></PortalGate></Route>
+    <Route exact path="/solicitudes"><PortalGate role="profesor"><ProfessorRequests /></PortalGate></Route>
     <Route><Redirect to={user ? '/' : '/login'} /></Route>
   </IonRouterOutlet></IonReactRouter></IonApp>;
 }
