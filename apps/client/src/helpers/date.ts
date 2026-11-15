@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 const dateFormat = new Intl.DateTimeFormat('es-CO', {
   dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Bogota',
 });

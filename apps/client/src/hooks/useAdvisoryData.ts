@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { Timestamp } from 'firebase/firestore';
 import {
   collection, onSnapshot, orderBy, query, where,
   type DocumentData, type QueryConstraint,
@@ -30,7 +31,7 @@ export function useSubjects() {
   return { subjects, loading, error };
 }
 
-function useLiveList<T>(path: string, constraints: QueryConstraint[], mapper: (id: string, data: DocumentData) => T) {
+export function useLiveList<T>(path: string, constraints: QueryConstraint[], mapper: (id: string, data: DocumentData) => T) {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

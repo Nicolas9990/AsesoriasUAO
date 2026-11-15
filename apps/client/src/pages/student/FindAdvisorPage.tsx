@@ -3,7 +3,7 @@ import {
   IonButton, IonInput, IonItem, IonLoading, IonSelect, IonSelectOption,
 } from '@ionic/react';
 import {
-  Timestamp, collection, doc, limit, orderBy, query, runTransaction,
+  Timestamp, collection, doc, limit, orderBy, runTransaction,
   serverTimestamp, where, type QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '../../firebase';

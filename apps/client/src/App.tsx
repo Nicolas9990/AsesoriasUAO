@@ -1,4 +1,3 @@
-import { IonApp } from '@ionic/react';
 import { AuthProvider } from './context/AuthProvider';
 import { AppRoutes } from './routes/AppRoutes';
 import { firebaseConfigured } from './firebase';
