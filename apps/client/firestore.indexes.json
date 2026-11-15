@@ -12,16 +12,6 @@
       "collectionGroup": "horarios",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "profesorId", "order": "ASCENDING" },
-        { "fieldPath": "activo", "order": "ASCENDING" },
-        { "fieldPath": "inicio", "order": "ASCENDING" },
-        { "fieldPath": "fin", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "horarios",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "activo", "order": "ASCENDING" },
         { "fieldPath": "reservado", "order": "ASCENDING" },
         { "fieldPath": "inicio", "order": "ASCENDING" }
@@ -64,3 +54,4 @@
   ],
   "fieldOverrides": []
 }
+
