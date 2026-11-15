@@ -29,11 +29,12 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
+  serverTimestamp,
   where,
   type DocumentData,
   type QueryConstraint,
 } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useAuth, type UserRole } from '../auth/AuthProvider';
@@ -86,11 +87,6 @@ function formatDate(value: Timestamp) {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'No se pudo completar la solicitud.';
-}
-
-function callFunction<TInput extends Record<string, unknown>, TOutput>(name: string, data: TInput) {
-  if (!db) return Promise.reject(new Error('Completa la configuración de Firebase.'));
-  return httpsCallable<TInput, TOutput>(getFunctions(), name)(data).then((result) => result.data);
 }
 
 function useSubjects() {
@@ -236,7 +232,34 @@ export function StudentSearch() {
     setNotice('');
     setBusyId(slot.id);
     try {
-      await callFunction<{ horarioId: string }, { reservaId: string }>('reservarHorario', { horarioId: slot.id });
+      const slotRef = doc(db, 'horarios', slot.id);
+      const profileRef = doc(db, 'perfilesPublicos', user.uid);
+      const bookingRef = doc(collection(db, 'reservas'));
+      await runTransaction(db, async (transaction) => {
+        const [slotSnapshot, profileSnapshot] = await Promise.all([
+          transaction.get(slotRef), transaction.get(profileRef),
+        ]);
+        if (!slotSnapshot.exists() || !profileSnapshot.exists()) throw new Error('No se encontró el horario o tu perfil.');
+        const current = slotSnapshot.data();
+        if (current.activo !== true || current.reservado === true || current.inicio.toMillis() <= Date.now()) {
+          throw new Error('El horario ya no está disponible. Actualiza los resultados.');
+        }
+        transaction.update(slotRef, { reservado: true, tieneHistorial: true, reservaId: bookingRef.id });
+        transaction.set(bookingRef, {
+          horarioId: slotRef.id,
+          estudianteId: user.uid,
+          estudianteNombre: profileSnapshot.get('nombre'),
+          profesorId: current.profesorId,
+          profesorNombre: current.profesorNombre,
+          asignaturaId: current.asignaturaId,
+          asignaturaNombre: current.asignaturaNombre,
+          inicio: current.inicio,
+          fin: current.fin,
+          estado: 'pendiente',
+          creadaEn: serverTimestamp(),
+          actualizadaEn: serverTimestamp(),
+        });
+      });
       setNotice('Tu solicitud se envió al profesor. Puedes consultar su estado en Mis reservas.');
     } catch (cause) { setNotice(errorMessage(cause)); }
     finally { setBusyId(''); }
@@ -286,7 +309,20 @@ export function StudentBookings() {
   async function cancel(booking: Booking) {
     setBusyId(booking.id); setNotice('');
     try {
-      await callFunction<{ reservaId: string; nuevoEstado: string }, { reservaId: string; estado: string }>('cambiarEstadoReserva', { reservaId: booking.id, nuevoEstado: 'cancelada' });
+      const bookingRef = doc(db, 'reservas', booking.id);
+      const slotRef = doc(db, 'horarios', booking.horarioId);
+      await runTransaction(db, async (transaction) => {
+        const [bookingSnapshot, slotSnapshot] = await Promise.all([
+          transaction.get(bookingRef), transaction.get(slotRef),
+        ]);
+        if (!bookingSnapshot.exists() || !slotSnapshot.exists()) throw new Error('No se encontró la reserva o el horario.');
+        const current = bookingSnapshot.data();
+        if (current.estudianteId !== user.uid || !['pendiente', 'confirmada'].includes(current.estado)
+          || current.inicio.toMillis() <= Date.now()) throw new Error('Ya no puedes cancelar esta reserva.');
+        if (slotSnapshot.get('reservaId') !== bookingRef.id) throw new Error('El horario ya no corresponde a esta reserva.');
+        transaction.update(bookingRef, { estado: 'cancelada', actualizadaEn: serverTimestamp() });
+        transaction.update(slotRef, { reservado: false, reservaId: null });
+      });
       setNotice('La asesoría fue cancelada.');
     } catch (cause) { setNotice(errorMessage(cause)); }
     finally { setBusyId(''); }
@@ -344,8 +380,48 @@ export function ProfessorSchedule() {
     }
     setBusy(true); setNotice('');
     try {
-      await callFunction<{ asignaturaId: string; inicioMs: number; finMs: number }, { horarioId: string }>('crearHorario', {
-        asignaturaId: subjectId, inicioMs: start.getTime(), finMs: finish.getTime(),
+      const startTimestamp = Timestamp.fromDate(start);
+      const endTimestamp = Timestamp.fromDate(finish);
+      const profileRef = doc(db, 'perfiles', user.uid);
+      const publicProfileRef = doc(db, 'perfilesPublicos', user.uid);
+      const subjectRef = doc(db, 'asignaturas', subjectId);
+      const assignmentRef = doc(db, 'perfiles', user.uid, 'asignaturas', subjectId);
+      const lockRef = doc(db, 'perfiles', user.uid, 'locks', 'horarios');
+      const slotRef = doc(collection(db, 'horarios'));
+      await runTransaction(db, async (transaction) => {
+        const [profile, publicProfile, subject, assignment, lock] = await Promise.all([
+          transaction.get(profileRef), transaction.get(publicProfileRef), transaction.get(subjectRef),
+          transaction.get(assignmentRef), transaction.get(lockRef),
+        ]);
+        if (!profile.exists() || profile.get('rol') !== 'profesor' || !publicProfile.exists()) {
+          throw new Error('Tu cuenta no está habilitada como profesor.');
+        }
+        if (!subject.exists() || subject.get('activa') !== true || !assignment.exists()) {
+          throw new Error('La asignatura no está activa o no está asignada a tu perfil.');
+        }
+        const intervals = (lock.exists() ? lock.get('intervalos') : []) as Array<{
+          horarioId: string; inicio: Timestamp; fin: Timestamp;
+        }>;
+        if (!Array.isArray(intervals)) throw new Error('El calendario del profesor no tiene un formato válido.');
+        const overlaps = intervals.some((item) => item.inicio instanceof Timestamp && item.fin instanceof Timestamp
+          && startTimestamp.toMillis() < item.fin.toMillis() && endTimestamp.toMillis() > item.inicio.toMillis());
+        if (overlaps) throw new Error('El horario se cruza con otra franja publicada.');
+        transaction.set(lockRef, {
+          actualizadoEn: serverTimestamp(),
+          intervalos: [...intervals, { horarioId: slotRef.id, inicio: startTimestamp, fin: endTimestamp }],
+        });
+        transaction.set(slotRef, {
+          profesorId: user.uid,
+          profesorNombre: publicProfile.get('nombre'),
+          asignaturaId: subjectId,
+          asignaturaNombre: subject.get('nombre'),
+          inicio: startTimestamp,
+          fin: endTimestamp,
+          reservado: false,
+          tieneHistorial: false,
+          activo: true,
+          creadoEn: serverTimestamp(),
+        });
       });
       setNotice('Horario publicado. Ya aparece en la búsqueda de asesorías.');
       setDate(''); setTime('');
@@ -356,7 +432,25 @@ export function ProfessorSchedule() {
   async function removeSchedule(slot: Slot) {
     setBusy(true); setNotice('');
     try {
-      await callFunction<{ horarioId: string }, { horarioId: string }>('eliminarHorario', { horarioId: slot.id });
+      const slotRef = doc(db, 'horarios', slot.id);
+      const lockRef = doc(db, 'perfiles', user.uid, 'locks', 'horarios');
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(slotRef);
+        if (!snapshot.exists() || snapshot.get('profesorId') !== user.uid || snapshot.get('reservado') === true
+          || snapshot.get('tieneHistorial') === true || snapshot.get('inicio').toMillis() <= Date.now()) {
+          throw new Error('Solo puedes eliminar horarios futuros sin reservas previas y de tu propiedad.');
+        }
+        const lock = await transaction.get(lockRef);
+        const intervals = (lock.exists() ? lock.get('intervalos') : []) as Array<{ horarioId: string }>;
+        if (!Array.isArray(intervals) || !intervals.some((item) => item.horarioId === slot.id)) {
+          throw new Error('No se encontró el horario en el calendario del profesor.');
+        }
+        transaction.set(lockRef, {
+          actualizadoEn: serverTimestamp(),
+          intervalos: intervals.filter((item) => item.horarioId !== slot.id),
+        });
+        transaction.delete(slotRef);
+      });
       setNotice('Horario eliminado.');
     } catch (cause) { setNotice(errorMessage(cause)); }
     finally { setBusy(false); }
@@ -401,7 +495,28 @@ export function ProfessorRequests() {
   async function update(booking: Booking, state: 'confirmada' | 'cancelada' | 'realizada') {
     setBusyId(booking.id); setNotice('');
     try {
-      await callFunction<{ reservaId: string; nuevoEstado: string }, { reservaId: string; estado: string }>('cambiarEstadoReserva', { reservaId: booking.id, nuevoEstado: state });
+      const bookingRef = doc(db, 'reservas', booking.id);
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(bookingRef);
+        if (!snapshot.exists()) throw new Error('No se encontró la reserva.');
+        const current = snapshot.data();
+        const ownsAsProfessor = current.profesorId === user.uid;
+        const ownsAsStudent = current.estudianteId === user.uid;
+        const now = Date.now();
+        const allowed = state === 'confirmada'
+          ? ownsAsProfessor && current.estado === 'pendiente' && current.inicio.toMillis() > now
+          : state === 'cancelada'
+            ? (ownsAsProfessor || ownsAsStudent) && ['pendiente', 'confirmada'].includes(current.estado) && current.inicio.toMillis() > now
+            : ownsAsProfessor && current.estado === 'confirmada' && current.fin.toMillis() <= now;
+        if (!allowed) throw new Error('La acción ya no está permitida para esta reserva.');
+        if (state === 'cancelada') {
+          const slotRef = doc(db, 'horarios', String(current.horarioId));
+          const slot = await transaction.get(slotRef);
+          if (!slot.exists() || slot.get('reservaId') !== bookingRef.id) throw new Error('El horario ya no corresponde a esta reserva.');
+          transaction.update(slotRef, { reservado: false, reservaId: null });
+        }
+        transaction.update(bookingRef, { estado: state, actualizadaEn: serverTimestamp() });
+      });
       setNotice(state === 'confirmada' ? 'Reserva confirmada.' : state === 'cancelada' ? 'Reserva cancelada.' : 'Asesoría marcada como realizada.');
     } catch (cause) { setNotice(errorMessage(cause)); }
     finally { setBusyId(''); }
