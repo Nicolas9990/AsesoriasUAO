@@ -34,7 +34,7 @@ import {
   type QueryConstraint,
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useHistory } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useAuth, type UserRole } from '../auth/AuthProvider';
 
@@ -169,7 +169,7 @@ function toBooking(id: string, data: DocumentData): Booking {
 
 function PortalFrame({ title, children }: PropsWithChildren<{ title: string }>) {
   const { profile, signOutUser } = useAuth();
-  const history = useHistory();
+  const location = useLocation();
   const links = profile?.rol === 'estudiante'
     ? [['/buscar', 'Buscar asesorías'], ['/reservas', 'Mis reservas']]
     : [['/horarios', 'Mis horarios'], ['/solicitudes', 'Solicitudes']];
@@ -182,7 +182,7 @@ function PortalFrame({ title, children }: PropsWithChildren<{ title: string }>) 
         </IonToolbar>
         <IonToolbar className="portal-nav">
           <IonButtons className="portal-nav-buttons">
-            {links.map(([path, label]) => <IonButton key={path} fill={history.location.pathname === path ? 'solid' : 'clear'} routerLink={path}>{label}</IonButton>)}
+            {links.map(([path, label]) => <IonButton key={path} fill={location.pathname === path ? 'solid' : 'clear'} routerLink={path}>{label}</IonButton>)}
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -427,7 +427,7 @@ export function ProfessorRequests() {
 
 export function DefaultPortalRoute() {
   const { profile } = useAuth();
-  const history = useHistory();
-  useEffect(() => { history.replace(profile?.rol === 'profesor' ? '/horarios' : '/buscar'); }, [history, profile?.rol]);
+  const navigate = useNavigate();
+  useEffect(() => { navigate(profile?.rol === 'profesor' ? '/horarios' : '/buscar', { replace: true }); }, [navigate, profile?.rol]);
   return <IonPage><IonContent><IonLoading isOpen message="Abriendo tu espacio…" /></IonContent></IonPage>;
 }

@@ -13,7 +13,7 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { Redirect, Route } from 'react-router-dom';
+import { Link, Navigate, Route } from 'react-router-dom';
 import { AuthProvider, firebaseConfigured, useAuth } from './auth/AuthProvider';
 import { DefaultPortalRoute, ProfessorRequests, ProfessorSchedule, StudentBookings, StudentSearch } from './features/AdvisorPortal';
 
@@ -78,7 +78,7 @@ function AuthScreen({ register = false }: { register?: boolean }) {
               {message && <IonText color="success"><p className="form-error">{message}</p></IonText>}
               <IonButton expand="block" type="submit" disabled={busy} className="primary-action">{register ? 'Crear cuenta' : 'Iniciar sesión'}</IonButton>
             </form>
-            <p className="auth-switch">{register ? '¿Ya tienes cuenta?' : '¿Aún no tienes cuenta?'} <a href={register ? '/login' : '/registro'}>{register ? 'Inicia sesión' : 'Regístrate'}</a></p>
+            <p className="auth-switch">{register ? '¿Ya tienes cuenta?' : '¿Aún no tienes cuenta?'} <Link to={register ? '/login' : '/registro'}>{register ? 'Inicia sesión' : 'Regístrate'}</Link></p>
           </section>
         </main>
       </IonContent>
@@ -90,7 +90,7 @@ function AuthScreen({ register = false }: { register?: boolean }) {
 function Home() {
   const { profile, user, loading } = useAuth();
   if (loading) return <IonPage><IonContent><IonLoading isOpen message="Cargando tu perfil…" /></IonContent></IonPage>;
-  if (!user) return <Redirect to="/login" />;
+  if (!user) return <Navigate to="/login" replace />;
   if (!profile) return <ProfilePending />;
   return <DefaultPortalRoute />;
 }
@@ -98,9 +98,9 @@ function Home() {
 function PortalGate({ role, children }: { role: 'estudiante' | 'profesor'; children: ReactNode }) {
   const { profile, user, loading } = useAuth();
   if (loading) return <IonPage><IonContent><IonLoading isOpen message="Cargando…" /></IonContent></IonPage>;
-  if (!user) return <Redirect to="/login" />;
+  if (!user) return <Navigate to="/login" replace />;
   if (!profile) return <ProfilePending />;
-  if (profile.rol !== role) return <Redirect to="/" />;
+  if (profile.rol !== role) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -125,14 +125,14 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   if (loading) return <IonApp><IonLoading isOpen message="Cargando…" /></IonApp>;
   return <IonApp><IonReactRouter><IonRouterOutlet>
-    <Route exact path="/login">{user ? <Redirect to="/" /> : <AuthScreen />}</Route>
-    <Route exact path="/registro">{user ? <Redirect to="/" /> : <AuthScreen register />}</Route>
-    <Route exact path="/">{user ? <Home /> : <Redirect to="/login" />}</Route>
-    <Route exact path="/buscar"><PortalGate role="estudiante"><StudentSearch /></PortalGate></Route>
-    <Route exact path="/reservas"><PortalGate role="estudiante"><StudentBookings /></PortalGate></Route>
-    <Route exact path="/horarios"><PortalGate role="profesor"><ProfessorSchedule /></PortalGate></Route>
-    <Route exact path="/solicitudes"><PortalGate role="profesor"><ProfessorRequests /></PortalGate></Route>
-    <Route><Redirect to={user ? '/' : '/login'} /></Route>
+    <Route path="/login" element={user ? <Navigate to="/" replace /> : <AuthScreen />} />
+    <Route path="/registro" element={user ? <Navigate to="/" replace /> : <AuthScreen register />} />
+    <Route path="/" element={user ? <Home /> : <Navigate to="/login" replace />} />
+    <Route path="/buscar" element={<PortalGate role="estudiante"><StudentSearch /></PortalGate>} />
+    <Route path="/reservas" element={<PortalGate role="estudiante"><StudentBookings /></PortalGate>} />
+    <Route path="/horarios" element={<PortalGate role="profesor"><ProfessorSchedule /></PortalGate>} />
+    <Route path="/solicitudes" element={<PortalGate role="profesor"><ProfessorRequests /></PortalGate>} />
+    <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
   </IonRouterOutlet></IonReactRouter></IonApp>;
 }
 

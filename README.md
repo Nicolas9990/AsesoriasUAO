@@ -25,10 +25,11 @@ La nueva app usa Ionic React como interfaz adaptable y Capacitor como runtime na
 1. Copia `apps/client/.env.example` a `apps/client/.env.local` y completa la configuración de la aplicación web Firebase.
 2. En Firebase Authentication, habilita **Correo electrónico/Contraseña** y la verificación del correo. El registro acepta solo cuentas `@uao.edu.co` verificadas.
 3. Crea la base de datos de Firestore en Native mode. Configura materias y asignaciones de profesores con Admin SDK o la consola; los pasos están en [firebase-data-model.md](docs/firebase-data-model.md).
-4. Desde la raíz del repositorio:
+4. Desde la raíz del repositorio, instala cada paquete por separado y luego inicia el cliente:
 
 ```bash
-npm install
+npm install --prefix apps/client --workspaces=false
+npm install --prefix functions --workspaces=false
 npm run dev
 ```
 
