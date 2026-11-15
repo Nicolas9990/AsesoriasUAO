@@ -35,7 +35,7 @@ import {
   type DocumentData,
   type QueryConstraint,
 } from 'firebase/firestore';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { db } from '../firebase';
 import { useAuth, type UserRole } from '../auth/AuthProvider';
 
@@ -555,9 +555,3 @@ export function ProfessorRequests() {
   </PortalFrame>;
 }
 
-export function DefaultPortalRoute() {
-  const { profile } = useAuth();
-  const navigate = useNavigate();
-  useEffect(() => { navigate(profile?.rol === 'profesor' ? '/horarios' : '/buscar', { replace: true }); }, [navigate, profile?.rol]);
-  return <IonPage><IonContent><IonLoading isOpen message="Abriendo tu espacio…" /></IonContent></IonPage>;
-}
