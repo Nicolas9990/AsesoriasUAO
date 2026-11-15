@@ -2,6 +2,21 @@
 
 # Compiled output
 /dist
+/apps/*/dist
+/apps/*/node_modules
+/functions/lib
+/functions/node_modules
+/functions/*.log
+/functions/.env
+/functions/.env.*
+!/functions/.env.example
+/firebase-debug.log
+/.firebase
+/apps/*/.env
+/apps/*/.env.*
+!/apps/*/.env.example
+/android
+/ios
 /tmp
 /out-tsc
 /bazel-out

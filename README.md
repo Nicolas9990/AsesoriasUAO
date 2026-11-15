@@ -1,59 +1,53 @@
-# ProyectoFinal
+# Asesorías UAO
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.6.
+Plataforma de acompañamiento académico para conectar estudiantes y profesores de la Universidad Autónoma de Occidente.
 
-## Development server
+## Estructura
 
-To start a local development server, run:
+- `apps/client`: aplicación React + Ionic + Capacitor para web, Android e iOS.
+- `apps/client/src/auth`: autenticación Firebase y carga de perfiles.
+- `apps/client/firestore.rules`: reglas de acceso y validación para perfiles y datos académicos.
+- `functions`: operaciones transaccionales para publicar/eliminar horarios, reservar y cambiar el estado de reservas.
+- `docs/firebase-data-model.md`: colecciones, campos, permisos y reglas derivadas de la versión anterior.
+- `legacy/angular`: versión Angular + Supabase existente, conservada como referencia durante la migración.
 
-```bash
-ng serve
-```
+La nueva app usa Ionic React como interfaz adaptable y Capacitor como runtime nativo. Esto mantiene una sola interfaz React para web y dispositivos móviles.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Requisitos
 
-## Code scaffolding
+- Node.js 20.19+ o 22.12+.
+- npm.
+- Un proyecto Firebase con Authentication (correo y contraseña) y Cloud Firestore Native mode.
+- Android Studio para compilar Android; macOS y Xcode para compilar iOS.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Desarrollo
 
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+1. Copia `apps/client/.env.example` a `apps/client/.env.local` y completa la configuración de la aplicación web Firebase.
+2. En Firebase Authentication, habilita **Correo electrónico/Contraseña** y la verificación del correo. El registro acepta solo cuentas `@uao.edu.co` verificadas.
+3. Crea la base de datos de Firestore en Native mode. Configura materias y asignaciones de profesores con Admin SDK o la consola; los pasos están en [firebase-data-model.md](docs/firebase-data-model.md).
+4. Desde la raíz del repositorio:
 
 ```bash
-ng build
+npm install
+npm run dev
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Para compilar cliente y Functions, ejecuta `npm run build`. Publica reglas, índices y callables con `npx firebase-tools deploy --only firestore,functions --project <firebase-project-id>`. La publicación de Functions requiere el plan Blaze y puede generar cargos por uso.
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Aplicación móvil
 
 ```bash
-ng test
+npx cap add android
+npx cap add ios
+npm run cap:sync
+npm run cap:android
+npm run cap:ios
 ```
 
-## Running end-to-end tests
+El proyecto iOS solo se puede compilar desde macOS con Xcode.
 
-For end-to-end (e2e) testing, run:
+## Migración funcional
 
-```bash
-ng e2e
-```
+La versión Angular contiene registro e inicio de sesión, perfiles por rol, búsqueda y reserva de asesorías, horarios de profesores, gestión de reservas y resumen del profesor. La autenticación y los permisos ya reflejan los roles; las callables de Firestore implementan las reglas de creación de horarios, solapamiento, reserva concurrente y transiciones de estado. Las pantallas React para estos flujos se migrarán usando este modelo. El rol de profesor se asigna desde un entorno administrativo confiable, nunca desde el formulario público.
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+El plan inicial de modelo Firestore y migración de datos está en [`docs/firebase-data-model.md`](docs/firebase-data-model.md). No se copian credenciales del cliente Supabase al nuevo cliente Firebase.

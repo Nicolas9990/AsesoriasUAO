@@ -1,33 +1,16 @@
 {
-  "name": "proyecto-final",
-  "version": "0.0.0",
-  "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
-  },
+  "name": "asesorias-uao",
+  "version": "1.0.0",
   "private": true,
-  "packageManager": "npm@11.19.1",
-  "dependencies": {
-    "@angular/common": "^22.1.0",
-    "@angular/compiler": "^22.1.0",
-    "@angular/core": "^22.1.0",
-    "@angular/forms": "^22.1.0",
-    "@angular/platform-browser": "^22.1.0",
-    "@angular/router": "^22.1.0",
-    "@supabase/supabase-js": "^2.118.0",
-    "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
-  },
-  "devDependencies": {
-    "@angular/build": "^22.1.6",
-    "@angular/cli": "^22.1.6",
-    "@angular/compiler-cli": "^22.1.0",
-    "jsdom": "^28.0.0",
-    "prettier": "^3.8.1",
-    "typescript": "~6.0.2",
-    "vitest": "^4.0.8"
+  "workspaces": ["apps/client", "functions"],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/client",
+    "build": "npm run build:client && npm run build:functions",
+    "build:client": "npm run build --workspace apps/client",
+    "build:functions": "npm run build --workspace functions",
+    "preview": "npm run preview --workspace apps/client",
+    "cap:sync": "npm run cap:sync --workspace apps/client",
+    "cap:android": "npm run cap:android --workspace apps/client",
+    "cap:ios": "npm run cap:ios --workspace apps/client"
   }
 }
