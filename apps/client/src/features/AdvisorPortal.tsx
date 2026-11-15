@@ -228,14 +228,16 @@ export function StudentSearch() {
   const { items: slots, loading, error } = useLiveList<Slot>('horarios', constraints, toSlot);
 
   async function reserve(slot: Slot) {
-    if (!user) return;
+    if (!db || !user) return;
+    const firestore = db;
+    const currentUser = user;
     setNotice('');
     setBusyId(slot.id);
     try {
-      const slotRef = doc(db, 'horarios', slot.id);
-      const profileRef = doc(db, 'perfilesPublicos', user.uid);
-      const bookingRef = doc(collection(db, 'reservas'));
-      await runTransaction(db, async (transaction) => {
+      const slotRef = doc(firestore, 'horarios', slot.id);
+      const profileRef = doc(firestore, 'perfilesPublicos', currentUser.uid);
+      const bookingRef = doc(collection(firestore, 'reservas'));
+      await runTransaction(firestore, async (transaction) => {
         const [slotSnapshot, profileSnapshot] = await Promise.all([
           transaction.get(slotRef), transaction.get(profileRef),
         ]);
@@ -247,7 +249,7 @@ export function StudentSearch() {
         transaction.update(slotRef, { reservado: true, tieneHistorial: true, reservaId: bookingRef.id });
         transaction.set(bookingRef, {
           horarioId: slotRef.id,
-          estudianteId: user.uid,
+          estudianteId: currentUser.uid,
           estudianteNombre: profileSnapshot.get('nombre'),
           profesorId: current.profesorId,
           profesorNombre: current.profesorNombre,
@@ -307,17 +309,20 @@ export function StudentBookings() {
   const [busyId, setBusyId] = useState('');
   const [notice, setNotice] = useState('');
   async function cancel(booking: Booking) {
+    if (!db || !user) return;
+    const firestore = db;
+    const currentUser = user;
     setBusyId(booking.id); setNotice('');
     try {
-      const bookingRef = doc(db, 'reservas', booking.id);
-      const slotRef = doc(db, 'horarios', booking.horarioId);
-      await runTransaction(db, async (transaction) => {
+      const bookingRef = doc(firestore, 'reservas', booking.id);
+      const slotRef = doc(firestore, 'horarios', booking.horarioId);
+      await runTransaction(firestore, async (transaction) => {
         const [bookingSnapshot, slotSnapshot] = await Promise.all([
           transaction.get(bookingRef), transaction.get(slotRef),
         ]);
         if (!bookingSnapshot.exists() || !slotSnapshot.exists()) throw new Error('No se encontró la reserva o el horario.');
         const current = bookingSnapshot.data();
-        if (current.estudianteId !== user.uid || !['pendiente', 'confirmada'].includes(current.estado)
+        if (current.estudianteId !== currentUser.uid || !['pendiente', 'confirmada'].includes(current.estado)
           || current.inicio.toMillis() <= Date.now()) throw new Error('Ya no puedes cancelar esta reserva.');
         if (slotSnapshot.get('reservaId') !== bookingRef.id) throw new Error('El horario ya no corresponde a esta reserva.');
         transaction.update(bookingRef, { estado: 'cancelada', actualizadaEn: serverTimestamp() });
@@ -372,7 +377,9 @@ export function ProfessorSchedule() {
   const { items: slots, loading, error } = useLiveList<Slot>('horarios', constraints, toSlot);
 
   async function createSchedule() {
-    if (!subjectId || !date || !time) { setNotice('Selecciona una asignatura, fecha y hora.'); return; }
+    if (!db || !user || !subjectId || !date || !time) { setNotice('Selecciona una asignatura, fecha y hora.'); return; }
+    const firestore = db;
+    const currentUser = user;
     const start = dateTimeInBogota(date, time);
     const finish = new Date(start.getTime() + duration * 60000);
     if (Number.isNaN(start.getTime()) || finish.toDateString() !== start.toDateString() || start.getTime() <= Date.now()) {
@@ -382,13 +389,13 @@ export function ProfessorSchedule() {
     try {
       const startTimestamp = Timestamp.fromDate(start);
       const endTimestamp = Timestamp.fromDate(finish);
-      const profileRef = doc(db, 'perfiles', user.uid);
-      const publicProfileRef = doc(db, 'perfilesPublicos', user.uid);
-      const subjectRef = doc(db, 'asignaturas', subjectId);
-      const assignmentRef = doc(db, 'perfiles', user.uid, 'asignaturas', subjectId);
-      const lockRef = doc(db, 'perfiles', user.uid, 'locks', 'horarios');
-      const slotRef = doc(collection(db, 'horarios'));
-      await runTransaction(db, async (transaction) => {
+      const profileRef = doc(firestore, 'perfiles', currentUser.uid);
+      const publicProfileRef = doc(firestore, 'perfilesPublicos', currentUser.uid);
+      const subjectRef = doc(firestore, 'asignaturas', subjectId);
+      const assignmentRef = doc(firestore, 'perfiles', currentUser.uid, 'asignaturas', subjectId);
+      const lockRef = doc(firestore, 'perfiles', currentUser.uid, 'locks', 'horarios');
+      const slotRef = doc(collection(firestore, 'horarios'));
+      await runTransaction(firestore, async (transaction) => {
         const [profile, publicProfile, subject, assignment, lock] = await Promise.all([
           transaction.get(profileRef), transaction.get(publicProfileRef), transaction.get(subjectRef),
           transaction.get(assignmentRef), transaction.get(lockRef),
@@ -413,7 +420,7 @@ export function ProfessorSchedule() {
           intervalos: [...intervals, { horarioId: slotRef.id, inicio: startTimestamp, fin: endTimestamp }],
         });
         transaction.set(slotRef, {
-          profesorId: user.uid,
+          profesorId: currentUser.uid,
           profesorNombre: publicProfile.get('nombre'),
           asignaturaId: subjectId,
           asignaturaNombre: subject.get('nombre'),
@@ -432,13 +439,16 @@ export function ProfessorSchedule() {
   }
 
   async function removeSchedule(slot: Slot) {
+    if (!db || !user) return;
+    const firestore = db;
+    const currentUser = user;
     setBusy(true); setNotice('');
     try {
-      const slotRef = doc(db, 'horarios', slot.id);
-      const lockRef = doc(db, 'perfiles', user.uid, 'locks', 'horarios');
-      await runTransaction(db, async (transaction) => {
+      const slotRef = doc(firestore, 'horarios', slot.id);
+      const lockRef = doc(firestore, 'perfiles', currentUser.uid, 'locks', 'horarios');
+      await runTransaction(firestore, async (transaction) => {
         const snapshot = await transaction.get(slotRef);
-        if (!snapshot.exists() || snapshot.get('profesorId') !== user.uid || snapshot.get('reservado') === true
+        if (!snapshot.exists() || snapshot.get('profesorId') !== currentUser.uid || snapshot.get('reservado') === true
           || snapshot.get('tieneHistorial') === true || snapshot.get('inicio').toMillis() <= Date.now()) {
           throw new Error('Solo puedes eliminar horarios futuros sin reservas previas y de tu propiedad.');
         }
@@ -495,15 +505,18 @@ export function ProfessorRequests() {
   const [busyId, setBusyId] = useState('');
   const [notice, setNotice] = useState('');
   async function update(booking: Booking, state: 'confirmada' | 'cancelada' | 'realizada') {
+    if (!db || !user) return;
+    const firestore = db;
+    const currentUser = user;
     setBusyId(booking.id); setNotice('');
     try {
-      const bookingRef = doc(db, 'reservas', booking.id);
-      await runTransaction(db, async (transaction) => {
+      const bookingRef = doc(firestore, 'reservas', booking.id);
+      await runTransaction(firestore, async (transaction) => {
         const snapshot = await transaction.get(bookingRef);
         if (!snapshot.exists()) throw new Error('No se encontró la reserva.');
         const current = snapshot.data();
-        const ownsAsProfessor = current.profesorId === user.uid;
-        const ownsAsStudent = current.estudianteId === user.uid;
+        const ownsAsProfessor = current.profesorId === currentUser.uid;
+        const ownsAsStudent = current.estudianteId === currentUser.uid;
         const now = Date.now();
         const allowed = state === 'confirmada'
           ? ownsAsProfessor && current.estado === 'pendiente' && current.inicio.toMillis() > now
@@ -512,7 +525,7 @@ export function ProfessorRequests() {
             : ownsAsProfessor && current.estado === 'confirmada' && current.fin.toMillis() <= now;
         if (!allowed) throw new Error('La acción ya no está permitida para esta reserva.');
         if (state === 'cancelada') {
-          const slotRef = doc(db, 'horarios', String(current.horarioId));
+          const slotRef = doc(firestore, 'horarios', String(current.horarioId));
           const slot = await transaction.get(slotRef);
           if (!slot.exists() || slot.get('reservaId') !== bookingRef.id) throw new Error('El horario ya no corresponde a esta reserva.');
           transaction.update(slotRef, { reservado: false, reservaId: null });
