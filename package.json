@@ -2,15 +2,13 @@
   "name": "asesorias-uao",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["apps/client", "functions"],
   "scripts": {
-    "dev": "npm run dev --workspace apps/client",
-    "build": "npm run build:client && npm run build:functions",
-    "build:client": "npm run build --workspace apps/client",
-    "build:functions": "npm run build --workspace functions",
-    "preview": "npm run preview --workspace apps/client",
-    "cap:sync": "npm run cap:sync --workspace apps/client",
-    "cap:android": "npm run cap:android --workspace apps/client",
-    "cap:ios": "npm run cap:ios --workspace apps/client"
+    "dev": "npm --prefix apps/client run dev",
+    "build": "npm --prefix apps/client run build",
+    "preview": "npm --prefix apps/client run preview",
+    "cap:sync": "npm --prefix apps/client run cap:sync",
+    "cap:android": "npm --prefix apps/client run cap:android",
+    "cap:ios": "npm --prefix apps/client run cap:ios"
   }
 }
+
